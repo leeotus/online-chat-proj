@@ -1,0 +1,1 @@
+set(ONLINE_SERVER_LIBNAME "cpsv")
