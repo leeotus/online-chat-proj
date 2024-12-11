@@ -88,6 +88,9 @@ int main(int argc, char **argv)
                 // 测试，直接断开:
                 close(fd);
                 epoll_ctl(epfd, EPOLL_CTL_DEL, fd, nullptr);
+            } else if(events[i].events == EPOLLOUT)
+            {
+                // TODO
             }
         }
     }
