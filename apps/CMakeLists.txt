@@ -1,6 +1,6 @@
 set(APP_NAME "online-chat-server")
 add_executable(
-    "${APP_NAME}" main.cpp
+    "${APP_NAME}" server.cpp
 )
 
 add_executable(client client.cpp)
@@ -23,7 +23,10 @@ target_link_libraries(
     pq
 )
 
-
+target_link_directories(
+    "${APP_NAME}" PUBLIC
+    "${OPENGAUSSCONNECTOR_PATH}"
+)
 target_include_directories(
     "${APP_NAME}" PUBLIC
     "${CMAKE_BINARY_DIR}"
@@ -34,4 +37,5 @@ target_include_directories(
 target_link_libraries(
     "${APP_NAME}"
     cpsv::core
+    pq
 )

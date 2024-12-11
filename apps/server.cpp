@@ -9,6 +9,7 @@
 #include <fcntl.h>
 
 #include "log/util.hpp"
+#include "opengauss/GaussConnector.hpp"
 
 #define MAX_LISTEN_NUM 15
 #define BUFFER_LENGTH 1024
@@ -18,6 +19,8 @@ void setNonBlocking(int fd);
 
 int main(int argc, char **argv)
 {
+    GaussConnector connector;
+
     char buffer[BUFFER_LENGTH];
     int bufferLen = 0;
     const char *ip = "127.0.0.1";

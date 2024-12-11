@@ -6,6 +6,9 @@ file(GLOB CURRENT_INC_FILES "${ONLINE_SERVER_INC_PATH}/**.hpp")
 file(GLOB THREADPOOL_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/threadpool/**.cpp")
 file(GLOB LOGGER_INC_FILES "${ONLINE_SERVER_INC_PATH}/log/**.hpp")
 file(GLOB LOGGER_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/log/**.cpp")
+file(GLOB_RECURSE OPENGAUSS_LIB_FILES "${ONLINE_SERVER_INC_PATH}/opengauss/**.h")
+file(GLOB OPENGAUSS_INC_FILES "${ONLINE_SERVER_INC_PATH}/opengauss/**.hpp")
+file(GLOB OPENGAUSS_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/opengauss/**.cpp")
 
 add_library(
     "${ONLINE_SERVER_LIBNAME}"
@@ -15,6 +18,9 @@ add_library(
     "${THREADPOOL_SRC_FILES}"
     "${LOGGER_INC_FILES}"
     "${LOGGER_SRC_FILES}"
+    "${OPENGAUSS_LIB_FILES}"
+    "${OPENGAUSS_INC_FILES}"
+    "${OPENGAUSS_SRC_FILES}"
 )
 
 target_include_directories(
