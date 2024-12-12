@@ -15,6 +15,13 @@ Socket::Socket()
     inetAddr = _inetAddr;
 }
 
+Socket::Socket(int _fd, InetAddress *_inetAddr)
+{
+    errif(fd == -1, "in Socket: fd==-1!");
+    fd = _fd;
+    inetAddr = _inetAddr;
+}
+
 Socket::Socket(const char* ip, const int port) 
 {
     fd = socket(PF_INET, SOCK_STREAM, 0);
@@ -24,6 +31,10 @@ Socket::Socket(const char* ip, const int port)
 
     InetAddress *_inetAddr = new InetAddress(ip, port);
     inetAddr = _inetAddr;
+}
+
+Socket::~Socket() {
+
 }
 
 void Socket::bind()

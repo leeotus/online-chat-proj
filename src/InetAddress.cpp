@@ -14,3 +14,8 @@ InetAddress::InetAddress(const char* ip, const int port) : addr_sz(sizeof(addr))
     addr.sin_addr.s_addr = inet_addr(ip);
     addr.sin_port = htons(port);
 }
+
+InetAddress::~InetAddress()
+{
+
+}

@@ -8,8 +8,9 @@ class Socket : public Connection
 {
 public:
     Socket();
-    Socket(int fd, InetAddress* _inetAddr) = delete;
+    Socket(int fd, InetAddress* _inetAddr);
     Socket(const char *ip, const int port);
+    ~Socket();
 
     void listen(int n = MAX_LISTEN_NUM);
     Connection* accept();

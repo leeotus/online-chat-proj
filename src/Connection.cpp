@@ -76,12 +76,12 @@ void Connection::exeSendCallback()
     sendCallback();
 }
 
-const char* Connection::getwBuffer()
+char* Connection::getwBuffer()
 {
     return wbuffer;
 }
 
-const char* Connection::getrBuffer()
+char* Connection::getrBuffer()
 {
     return rbuffer;
 }

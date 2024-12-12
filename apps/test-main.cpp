@@ -1,22 +1,9 @@
-/*
- * testlibpq.c
- */
-#include <stdio.h>
-#include <stdlib.h>
-#include "opengauss/libpq-fe.h"
+#include "Server.hpp"
+#include "EventLoop.hpp"
 
-#include "opengauss/GaussConnector.hpp"
-
-static void
-exit_nicely(PGconn *conn)
+int main(int argc, char **argv)
 {
-    PQfinish(conn);
-    exit(1);
-}
-
-int
-main(int argc, char **argv)
-{
-    GaussConnector gauss;
-    gauss.insert("insert into customers values(24,'li')");
+    EventLoop *loop = new EventLoop();
+    Server *server = new Server(loop);
+    loop->start();
 }

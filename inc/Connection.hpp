@@ -75,8 +75,8 @@ public:
     void setRecvCallback(std::function<void()> _recvCallback);
     void setSendCallback(std::function<void()> _sendCallback);
 
-    const char* getwBuffer();
-    const char* getrBuffer();
+    char* getwBuffer();
+    char* getrBuffer();
     const int getCurWlen() const;
     const int getCurRlen() const;
     void setRLen(int _rlen);
