@@ -1,6 +1,10 @@
 #pragma once
 
 #include <sys/epoll.h>
+#include <functional>
+
+#define RECV_BUFFER_LENGTH 2048
+#define SEND_BUFFER_LENGTH 2048
 
 class InetAddress;
 class Connection {
@@ -21,6 +25,16 @@ public:
     }
 
     /**
+     * @brief 获取当前的连接是否已经被放入到epoll红黑树中
+     * @return true 
+     * @return false 
+     */
+    inline bool getInEpoll() const
+    {
+        return inEpoll;
+    }
+
+    /**
      * @brief Get the Inet Address object
      * 获取套接字的套接字地址
      * @return const InetAddress* 
@@ -29,11 +43,6 @@ public:
     inline const InetAddress* getInetAddress()
     {
         return inetAddr;
-    }
-
-    inline void setInetAddr(InetAddress *_inetAddr)
-    {
-        inetAddr = _inetAddr; 
     }
 
     /**
@@ -47,6 +56,32 @@ public:
         inEpoll = true;
     }
 
+    void setEvent(uint32_t flags);
+    void setREvent(uint32_t flags);
+
+    epoll_event* getEvent();
+    epoll_event* getREvent();
+
+    /**
+     * @brief 执行recv回调函数
+     */
+    void exeRecvCallback();
+
+    /**
+     * @brief 执行send回调函数
+     */
+    void exeSendCallback();
+
+    void setRecvCallback(std::function<void()> _recvCallback);
+    void setSendCallback(std::function<void()> _sendCallback);
+
+    const char* getwBuffer();
+    const char* getrBuffer();
+    const int getCurWlen() const;
+    const int getCurRlen() const;
+    void setRLen(int _rlen);
+    void setWLen(int _wlen);
+
 protected:
     int fd{-1};     // 文件描述符
     bool inEpoll{false};       // 是否已经被保存在epoll红黑树中
@@ -55,4 +90,12 @@ protected:
 private:
     struct epoll_event event;
     struct epoll_event revent;
+
+    char rbuffer[RECV_BUFFER_LENGTH];
+    int  rlen{0};
+    char wbuffer[SEND_BUFFER_LENGTH];
+    int wlen{0};
+
+    std::function<void()> recvCallback;
+    std::function<void()> sendCallback;
 };

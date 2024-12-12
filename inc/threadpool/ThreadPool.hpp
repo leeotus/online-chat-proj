@@ -9,6 +9,8 @@
 #include <queue>
 #include <memory>
 
+#include "log/util.hpp"
+
 class ThreadPool
 {
 public:
@@ -57,6 +59,7 @@ auto ThreadPool::enqueue(F&& f, Args&& ...args) -> std::future<typename std::res
 
     {
         std::unique_lock<std::mutex> _g(mtx);
+        errif(quit == true, "Enqueue in a dying threadpool!");
         tasks.emplace([taskPtr]() {
             (*taskPtr)();
         });
