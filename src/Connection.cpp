@@ -8,16 +8,12 @@
 
 Connection::Connection()
 {
-    perror("do not use this function directly!");
-    exit(EXIT_FAILURE);
 }
 
 Connection::Connection(int _fd, InetAddress *_inetAddr) : fd(_fd), inetAddr(_inetAddr) {}
 
 Connection::Connection(const char *ip, const int port)
 {
-    perror("don't use this function directly!");
-    exit(EXIT_FAILURE);
 }
 
 Connection::~Connection()
