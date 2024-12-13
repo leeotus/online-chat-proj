@@ -3,6 +3,7 @@
 #include "EventLoop.hpp"
 #include "log/util.hpp"
 
+#include <cstring>
 #include <sys/socket.h>
 #include <stdio.h>
 #include <arpa/inet.h>
@@ -48,13 +49,13 @@ void acceptCallback(Connection* conn, Epoll *epoll)
     epoll->updateConnection(client_conn, ACTION_UPDATE);
 
     epoll->setRecvCallback(client_conn, recvCallback);
-    // todo: 设置客户端发送回调函数
-
+    epoll->setSendCallback(client_conn, sendCallback);
 }
 
 void recvCallback(Connection *conn, Epoll *epoll)
 {
     int recv_bytes{0};
+    // 清除缓存
     conn->rBufferClear();
     while(true)
     {
@@ -66,10 +67,22 @@ void recvCallback(Connection *conn, Epoll *epoll)
         ) {
             break;
         }
+        conn->setRLen(rlen + recv_bytes);
     }
     // debug:
     printf("recv from client: %s\r\n", conn->getrBuffer());
 
-    // todo: 设置为EPOLLOUT,目前暂时删除:
+    conn->setEvent(EPOLLOUT);
+    epoll->updateConnection(conn, ACTION_UPDATE);
+}
+
+void sendCallback(Connection *conn, Epoll *epoll)
+{
+    strcpy(conn->getwBuffer(), conn->getrBuffer());
+    conn->setWLen(conn->getCurRlen());
+    // echo:
+    write(conn->getFd(), conn->getwBuffer(), conn->getCurWlen());
+
+    // close:
     epoll->updateConnection(conn, ACTION_DELETE);
 }
