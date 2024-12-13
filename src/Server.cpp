@@ -19,6 +19,7 @@ Server::Server(EventLoop *_loop)
     errif(loop != nullptr, "EventLoop * is nullptr!");
     loop = _loop;
     servSock = new Socket("127.0.0.1", 8080);
+    servSock->listen(MAX_LISTEN_NUM);
     loop->updateConnection(static_cast<Connection*>(servSock), ACTION_UPDATE);
 
     // 设置服务器端的接收回调函数
