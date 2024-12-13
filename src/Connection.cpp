@@ -2,6 +2,7 @@
 #include "InetAddress.hpp"
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
 #include <unistd.h>
 #include <functional>
@@ -38,8 +39,8 @@ void Connection::setEvent(uint32_t flags)
 
 void Connection::setREvent(uint32_t flags)
 {
-    event.data.fd = fd;
-    event.events = flags;
+    revent.data.fd = fd;
+    revent.events = flags;
 }
 
 epoll_event* Connection::getEvent()
@@ -70,6 +71,16 @@ void Connection::exeRecvCallback()
 void Connection::exeSendCallback()
 {
     sendCallback();
+}
+
+void Connection::wBufferClear()
+{
+    memset(wbuffer, 0, SEND_BUFFER_LENGTH);
+}
+
+void Connection::rBufferClear()
+{
+    memset(rbuffer, 0, RECV_BUFFER_LENGTH);
 }
 
 char* Connection::getwBuffer()

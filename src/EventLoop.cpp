@@ -8,15 +8,18 @@ EventLoop::~EventLoop()
 
 void EventLoop::start(int timeout)
 {
-    auto readyConns = wait(timeout);
-    for(auto *c : readyConns)
+    while(true)
     {
-        if(c->getREvent()->events & EPOLLIN)
+        auto readyConns = wait(timeout);
+        for(auto *c : readyConns)
         {
-            c->exeRecvCallback();
-        } else if(c->getREvent()->events & EPOLLOUT)
-        {
-            c->exeSendCallback();
+            if(c->getREvent()->events & EPOLLIN)
+            {
+                c->exeRecvCallback();
+            } else if(c->getREvent()->events & EPOLLOUT)
+            {
+                c->exeSendCallback();
+            }
         }
     }
 }

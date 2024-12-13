@@ -77,6 +77,8 @@ public:
 
     char* getwBuffer();
     char* getrBuffer();
+    void wBufferClear();
+    void rBufferClear();
     const int getCurWlen() const;
     const int getCurRlen() const;
     void setRLen(int _rlen);

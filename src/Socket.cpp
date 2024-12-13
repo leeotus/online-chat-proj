@@ -13,6 +13,7 @@ Socket::Socket()
 
     InetAddress *_inetAddr = new InetAddress("127.0.0.1", 8080);
     inetAddr = _inetAddr;
+    this->bind();
 }
 
 Socket::Socket(int _fd, InetAddress *_inetAddr)
@@ -20,6 +21,7 @@ Socket::Socket(int _fd, InetAddress *_inetAddr)
     errif(fd == -1, "in Socket: fd==-1!");
     fd = _fd;
     inetAddr = _inetAddr;
+    this->bind();
 }
 
 Socket::Socket(const char* ip, const int port) 
@@ -31,6 +33,7 @@ Socket::Socket(const char* ip, const int port)
 
     InetAddress *_inetAddr = new InetAddress(ip, port);
     inetAddr = _inetAddr;
+    this->bind();
 }
 
 Socket::~Socket() {

@@ -20,6 +20,8 @@ Server::Server(EventLoop *_loop)
     loop = _loop;
     servSock = new Socket("127.0.0.1", 8080);
     servSock->listen(MAX_LISTEN_NUM);
+    servSock->setEvent(EPOLLIN|EPOLLET);
+    servSock->setNonBlocking();
     loop->updateConnection(static_cast<Connection*>(servSock), ACTION_UPDATE);
 
     // 设置服务器端的接收回调函数
@@ -46,13 +48,14 @@ void acceptCallback(Connection* conn, Epoll *epoll)
     epoll->updateConnection(client_conn, ACTION_UPDATE);
 
     epoll->setRecvCallback(client_conn, recvCallback);
-    // todo: 设置发送回调函数
+    // todo: 设置客户端发送回调函数
 
 }
 
 void recvCallback(Connection *conn, Epoll *epoll)
 {
     int recv_bytes{0};
+    conn->rBufferClear();
     while(true)
     {
         int rlen = conn->getCurRlen();
@@ -66,5 +69,7 @@ void recvCallback(Connection *conn, Epoll *epoll)
     }
     // debug:
     printf("recv from client: %s\r\n", conn->getrBuffer());
-    // todo: 设置为EPOLLOUT
+
+    // todo: 设置为EPOLLOUT,目前暂时删除:
+    epoll->updateConnection(conn, ACTION_DELETE);
 }
