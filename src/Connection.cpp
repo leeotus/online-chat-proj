@@ -19,11 +19,22 @@ Connection::Connection(const char *ip, const int port)
 
 Connection::~Connection()
 {
+    //debug:
+    printf("~Connection()\r\n");
     if(inetAddr!=nullptr)
     {
         delete inetAddr;
     }
     close(fd);
+}
+
+void Connection::setFd(int _fd){
+    fd = _fd;
+}
+
+void Connection::setInetAddress(InetAddress *_inetAddr)
+{
+    inetAddr = _inetAddr;
 }
 
 void Connection::setNonBlocking()

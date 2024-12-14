@@ -1,11 +1,15 @@
 #pragma once
 
+#include <thread>
 #include "Epoll.hpp"
+#include "pools/ThreadPool.hpp"
 
 class EventLoop : public Epoll
 {
 public:
-    EventLoop() : Epoll() {}
+    EventLoop() : Epoll() {
+        threadWorkers = new ThreadPool(std::thread::hardware_concurrency());
+    }
     ~EventLoop();
 
     /**
@@ -13,5 +17,6 @@ public:
      * @param timeout epoll_wait等待时间 
      */
     void start(int timeout=-1);
-
+private:
+    ThreadPool *threadWorkers;    
 };

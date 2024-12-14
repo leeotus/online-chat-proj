@@ -9,7 +9,6 @@ Socket::Socket()
 {
     fd = socket(PF_INET, SOCK_STREAM, 0);
     errif(fd == -1, "socket create failed!");
-    // todo: 设置epoll的event
 
     InetAddress *_inetAddr = new InetAddress("127.0.0.1", 8080);
     inetAddr = _inetAddr;
@@ -54,6 +53,7 @@ void Socket::listen(int n)
 
 Connection* Socket::accept()
 {
+    // todo: Connection内存池
     InetAddress *_inetAddr = new InetAddress();
     int clientfd = ::accept(fd, (struct sockaddr*)&_inetAddr->addr, &_inetAddr->addr_sz);
     Connection *conn = new Connection(clientfd, _inetAddr);

@@ -14,6 +14,16 @@ public:
     Connection(const char* ip, const int port);
     ~Connection();
 
+    // 内存池管理
+    Connection *next;
+
+    /**
+     * @brief 设置Connection保存的fd文件描述符
+     * @param _fd 要保存在Connection对象的文件描述符 
+     * @note 一般供给内存池使用
+     */
+    void setFd(int _fd);
+
     /**
      * @brief Get the Fd object
      * 获取保存的文件描述符
@@ -33,6 +43,8 @@ public:
     {
         return inEpoll;
     }
+
+    void setInetAddress(InetAddress *_inetAddr);
 
     /**
      * @brief Get the Inet Address object

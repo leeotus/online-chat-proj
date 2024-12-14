@@ -2,6 +2,7 @@
 #include "Socket.hpp"
 #include "EventLoop.hpp"
 #include "log/util.hpp"
+#include "pools/ThreadPool.hpp"
 
 #include <cstring>
 #include <sys/socket.h>
@@ -29,6 +30,12 @@ Server::Server(EventLoop *_loop)
     loop->setRecvCallback(static_cast<Connection*>(servSock), acceptCallback);
 }
 
+Server::~Server()
+{
+    delete servSock;
+    delete loop;
+}
+
 
 void acceptCallback(Connection* conn, Epoll *epoll)
 {
@@ -54,6 +61,8 @@ void acceptCallback(Connection* conn, Epoll *epoll)
 
 void recvCallback(Connection *conn, Epoll *epoll)
 {
+    //debug:
+    printf("in recvCallback: conn's fd:%d\r\n", conn->getFd());
     int recv_bytes{0};
     // 清除缓存
     conn->rBufferClear();
@@ -72,16 +81,26 @@ void recvCallback(Connection *conn, Epoll *epoll)
     // debug:
     printf("recv from client: %s\r\n", conn->getrBuffer());
 
-    conn->setEvent(EPOLLOUT);
-    epoll->updateConnection(conn, ACTION_UPDATE);
+    if(strlen(conn->getrBuffer()) != 0)
+    {
+        conn->setEvent(EPOLLOUT | EPOLLET);
+        epoll->updateConnection(conn, ACTION_UPDATE);
+    } else {
+        // 如果客户端啥都没有发来:
+        epoll->updateConnection(conn, ACTION_DELETE);
+    }
 }
 
 void sendCallback(Connection *conn, Epoll *epoll)
 {
-    strcpy(conn->getwBuffer(), conn->getrBuffer());
-    conn->setWLen(conn->getCurRlen());
+    // debug:
+    printf("in sendCallback, conn's fd:%d\r\n", conn->getFd());
+    // conn->wBufferClear();
+    // strcpy(conn->getwBuffer(), conn->getrBuffer());
+    // conn->setWLen(conn->getCurRlen());
+    const char *response = "hello world";
     // echo:
-    write(conn->getFd(), conn->getwBuffer(), conn->getCurWlen());
+    send(conn->getFd(), response, strlen(response), 0);
 
     // close:
     epoll->updateConnection(conn, ACTION_DELETE);

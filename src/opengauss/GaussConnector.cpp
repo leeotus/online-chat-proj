@@ -6,7 +6,8 @@
 
 GaussConnector::GaussConnector()
 {
-    conninfo = "dbname=postgres port=5432 host='127.0.0.1' application_name=online-chat connect_timeout=10 sslmode=allow user='superuser' password='OGSql@123'";
+    // note: 159.75.88.12此服务器将于1月份过期
+    conninfo = "dbname=postgres port=5432 host='159.75.88.12' application_name=online-chat connect_timeout=10 sslmode=allow user='superuser' password='OGSql@123'";
     conn = PQconnectdb(conninfo);
 
     if(PQstatus(conn) != CONNECTION_OK)
@@ -15,14 +16,6 @@ GaussConnector::GaussConnector()
         // 错误退出
         exit(EXIT_FAILURE);
     }
-    // 创建本项目的表:(还是自己用db软件创建吧，比较方便)
-    // res = PQexec(conn, 
-    // "CREATE TABLE chat_customers(user_id varchar(255) primary key, user_name varchar(255))"
-    // );
-    // if(PQresetStart(conn) != PGRES_COMMAND_OK)
-    // {
-    //     printf("table create failed or has already exit!\r\n");
-    // }
 }
 
 GaussConnector::~GaussConnector()

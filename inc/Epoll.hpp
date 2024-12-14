@@ -3,6 +3,7 @@
 #include <sys/epoll.h>
 #include <vector>
 #include <functional>
+#include <memory>
 
 #define MAX_EPOLL_CONN 16384
 
@@ -49,6 +50,6 @@ public:
     
 private:
     int epfd;
-    std::map<int, Connection*> connMap;
+    std::map<int, std::unique_ptr<Connection>> connMap;
     struct epoll_event events[MAX_EPOLL_CONN];
 };
