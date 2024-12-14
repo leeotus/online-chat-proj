@@ -3,8 +3,10 @@
 #include "EventLoop.hpp"
 #include "log/util.hpp"
 #include "pools/ThreadPool.hpp"
+#include "opengauss/GaussConnector.hpp"
+#include "opengauss/libpq-fe.h"
 
-#include <cstring>
+#include <string.h>
 #include <sys/socket.h>
 #include <stdio.h>
 #include <arpa/inet.h>
@@ -12,11 +14,37 @@
 #include <unistd.h>
 #include <errno.h>
 
-void acceptCallback(Connection* conn ,Epoll* epoll);
-void recvCallback(Connection* conn, Epoll *epoll);
-void sendCallback(Connection* conn, Epoll *epoll);
+void trim(char* str) {
+    int start = 0;
+    int end = strlen(str) - 1;
 
-Server::Server(EventLoop *_loop)
+    // 找到第一个不是空格或换行符的字符的位置
+    while (start <= end && (str[start] == ' ' || str[start] == '\n' || str[start] == '\r' || str[start] == '\t')) {
+        start++;
+    }
+
+    // 找到最后一个不是空格或换行符的字符的位置
+    while (end >= start && (str[end] == ' ' || str[end] == '\n' || str[end] == '\r' || str[end] == '\t')) {
+        end--;
+    }
+
+    // 如果字符串全是空格或换行符，则将字符串置为空
+    if (start > end) {
+        str[0] = '\0';
+    } else {
+        // 将字符串中多余的空格或换行符替换为字符串结束符
+        for (int i = start; i <= end; i++) {
+            str[i - start] = str[i];
+        }
+        str[end - start + 1] = '\0';
+    }
+}
+
+void acceptCallback(Connection* conn ,Epoll* epoll, GaussConnector* dbConnector);
+void recvCallback(Connection* conn, Epoll *epoll);
+void sendCallback(Connection* conn, Epoll *epoll, GaussConnector *dbConnector);
+
+Server::Server(EventLoop *_loop) : dbConnector(new GaussConnector)
 {
     errif(loop != nullptr, "EventLoop * is nullptr!");
     loop = _loop;
@@ -27,7 +55,11 @@ Server::Server(EventLoop *_loop)
     loop->updateConnection(static_cast<Connection*>(servSock), ACTION_UPDATE);
 
     // 设置服务器端的接收回调函数
-    loop->setRecvCallback(static_cast<Connection*>(servSock), acceptCallback);
+    loop->setRecvCallback(static_cast<Connection*>(servSock), 
+        std::bind(
+            acceptCallback, std::placeholders::_1, std::placeholders::_2, this->getDBConnector()
+        )
+    );
 }
 
 Server::~Server()
@@ -36,8 +68,13 @@ Server::~Server()
     delete loop;
 }
 
+GaussConnector* Server::getDBConnector()
+{
+    return dbConnector.get();
+}
 
-void acceptCallback(Connection* conn, Epoll *epoll)
+
+void acceptCallback(Connection* conn, Epoll *epoll, GaussConnector *dbConnector)
 {
     Socket *servSock = static_cast<Socket*>(conn);
     // 接收来自客户端的请求
@@ -56,13 +93,17 @@ void acceptCallback(Connection* conn, Epoll *epoll)
     epoll->updateConnection(client_conn, ACTION_UPDATE);
 
     epoll->setRecvCallback(client_conn, recvCallback);
-    epoll->setSendCallback(client_conn, sendCallback);
+    epoll->setSendCallback(client_conn, 
+            std::bind(
+                sendCallback, 
+                std::placeholders::_1, 
+                std::placeholders::_2, 
+                dbConnector
+            ));
 }
 
 void recvCallback(Connection *conn, Epoll *epoll)
 {
-    //debug:
-    printf("in recvCallback: conn's fd:%d\r\n", conn->getFd());
     int recv_bytes{0};
     // 清除缓存
     conn->rBufferClear();
@@ -91,16 +132,39 @@ void recvCallback(Connection *conn, Epoll *epoll)
     }
 }
 
-void sendCallback(Connection *conn, Epoll *epoll)
+void sendCallback(Connection *conn, Epoll *epoll, GaussConnector *dbConnector)
 {
     // debug:
-    printf("in sendCallback, conn's fd:%d\r\n", conn->getFd());
-    // conn->wBufferClear();
-    // strcpy(conn->getwBuffer(), conn->getrBuffer());
-    // conn->setWLen(conn->getCurRlen());
-    const char *response = "hello world";
-    // echo:
-    send(conn->getFd(), response, strlen(response), 0);
+    char buffer[1024];
+    trim(conn->getrBuffer());
+    strcpy(buffer, conn->getrBuffer());
+    if(strcmp(buffer, "LogIn"))
+    {
+        // 登录操作:
+        const char delims[] = " ?";
+        strtok(buffer, delims);
+        char *username = strtok(NULL, delims);
+        char *password = strtok(NULL, delims);
+        printf("username = %s,pwd=%s\r\n", username, password);
+
+        // todo: 查找操作:
+        char query[2048];
+        char errmsgBuffer[1024];
+        sprintf(query, "select * from user_info where username = '%s' and password = '%s';", username, password);
+        //debug:
+        printf("query = %s\r\n", query);
+        int res = dbConnector->searchForOne(query, errmsgBuffer);
+        if(res == 0)
+        {
+            strcpy(conn->getwBuffer(), "Pass");
+            conn->setWLen(strlen("Pass"));
+        } else {
+            strcpy(conn->getwBuffer(), errmsgBuffer);
+            conn->setWLen(strlen(errmsgBuffer));
+        }
+    }
+
+    send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
 
     // close:
     epoll->updateConnection(conn, ACTION_DELETE);

@@ -21,12 +21,6 @@ public:
      */
     int insert(const char *cmd, char *errmsgBuffer=nullptr);
 
-    template<typename ...Args>
-    int insert(const char *tableName, Args&& ...args)
-    {
-        std::string str{2};
-    }
-
     /**
      * @brief 数据库更新操作，更新表中的数据
      * @param cmd 更新指令
@@ -43,7 +37,9 @@ public:
      * 信息保存在该char数组中,以供查询错误信息
      * @return int 成功返回0,失败返回-1
      */
-    int omit(const char *cmd, char *errmsgBuffer=nullptr);
+    int remove(const char *cmd, char *errmsgBuffer=nullptr);
+
+    int searchForOne(const char* cmd, char *errmsgBuffer=nullptr);
 
 private:
     const char *conninfo;

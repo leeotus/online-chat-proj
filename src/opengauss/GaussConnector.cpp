@@ -53,7 +53,7 @@ int GaussConnector::update(const char* cmd, char *errmsgBuffer)
     return 0;
 }
 
-int GaussConnector::omit(const char *cmd, char *errmsgBuffer)
+int GaussConnector::remove(const char *cmd, char *errmsgBuffer)
 {
     res = PQexec(conn, cmd);
     if(PQresultStatus(res) != PGRES_COMMAND_OK)
@@ -65,5 +65,63 @@ int GaussConnector::omit(const char *cmd, char *errmsgBuffer)
         PQclear(res);
         return -1;
     }
+    return 0;
+}
+
+int GaussConnector::searchForOne(const char *cmd, char* errmsgBuffer)
+{
+    char query[2048];
+
+    // 开始事务:
+    res = PQexec(conn, "BEGIN");
+    if(PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        strcpy(errmsgBuffer, PQerrorMessage(conn));
+        return -1;
+    }
+    PQclear(res);
+
+    strcpy(query, "DECLARE search CURSOR FOR ");
+    strcat(query, cmd);
+    res = PQexec(conn, query);
+    if(PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        if(errmsgBuffer!=nullptr)
+        {
+            strcpy(errmsgBuffer, PQerrorMessage(conn));
+            PQclear(res);
+            res = PQexec(conn, "CLOSE search");
+            PQclear(res);
+            return -1;
+        }
+    }
+    PQclear(res);
+
+    res = PQexec(conn, "FETCH ALL in search");
+    if(PQresultStatus(res) != PGRES_TUPLES_OK)
+    {
+        strcpy(errmsgBuffer, PQerrorMessage(conn));
+        PQclear(res);
+        res = PQexec(conn, "CLOSE search");
+        PQclear(res);
+        return -1;
+    }
+
+    if(PQntuples(res) == 0)
+    {
+        strcpy(errmsgBuffer, "NoUid");
+        PQclear(res);
+        res = PQexec(conn, "CLOSE search");
+        PQclear(res);
+        return -1;
+    }
+
+    // 关闭入口
+    res = PQexec(conn, "CLOSE search");
+    PQclear(res);
+
+    // 结束事务
+    res = PQexec(conn, "END");
+    PQclear(res);
     return 0;
 }

@@ -9,6 +9,8 @@ file(GLOB LOGGER_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/log/**.cpp")
 file(GLOB_RECURSE OPENGAUSS_LIB_FILES "${ONLINE_SERVER_INC_PATH}/opengauss/**.h")
 file(GLOB OPENGAUSS_INC_FILES "${ONLINE_SERVER_INC_PATH}/opengauss/**.hpp")
 file(GLOB OPENGAUSS_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/opengauss/**.cpp")
+file(GLOB DBTABLES_INC_FILES "${ONLINE_SERVER_INC_PATH}/opengauss/tables/**.hpp")
+file(GLOB DBTABLES_SRC_FILES "${CMAKE_CURRENT_SOURCE_DIR}/opengauss/tables/**.cpp")
 
 add_library(
     "${ONLINE_SERVER_LIBNAME}"
@@ -21,6 +23,8 @@ add_library(
     "${OPENGAUSS_LIB_FILES}"
     "${OPENGAUSS_INC_FILES}"
     "${OPENGAUSS_SRC_FILES}"
+    "${DBTABLES_INC_FILES}"
+    "${DBTABLES_SRC_FILES}"
 )
 
 target_include_directories(

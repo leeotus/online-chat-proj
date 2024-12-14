@@ -15,3 +15,4 @@ set(OPENGAUSSCONNECTOR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs")
 add_subdirectory(src)
 add_subdirectory(apps)
 
+enable_testing()
