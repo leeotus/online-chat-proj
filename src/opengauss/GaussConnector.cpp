@@ -125,3 +125,13 @@ int GaussConnector::searchForOne(const char *cmd, char* errmsgBuffer)
     PQclear(res);
     return 0;
 }
+
+PGconn* GaussConnector::getDBConnector()
+{
+    return conn;
+}
+
+PGresult *GaussConnector::getDBRes()
+{
+    return res;
+}

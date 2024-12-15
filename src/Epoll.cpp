@@ -23,6 +23,7 @@ void Epoll::updateConnection(Connection *conn, EpollAction act)
         if(conn->getInEpoll())
         {
             epoll_ctl(epfd, EPOLL_CTL_MOD, conn->getFd(), conn->getEvent());
+            conn->setNonBlocking();
         } else if(!conn->getInEpoll())
         {
             epoll_ctl(epfd, EPOLL_CTL_ADD, conn->getFd(), conn->getEvent());
@@ -44,8 +45,6 @@ std::vector<Connection*> Epoll::wait(int timeout)
 {
     std::vector<Connection*> res;
     int nready = epoll_wait(epfd, events, MAX_EPOLL_CONN, timeout);
-    //debug:
-    printf("nready = %d\r\n", nready);
     for(int i=0;i<nready;++i)
     {
         auto c = connMap[events[i].data.fd].get();

@@ -22,7 +22,6 @@ int main(int argc, char **argv)
 
     clientfd = socket(PF_INET, SOCK_STREAM, 0);
     errif(clientfd == -1, "socket create failed !");
-    // setNonBlocking(clientfd);
 
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
@@ -33,24 +32,26 @@ int main(int argc, char **argv)
     int res = connect(clientfd, (struct sockaddr*)&serverAddr, socklen);
     errif(res == -1, "connect error!");
 
+    // setNonBlocking(clientfd);
     while(true)
     {
         int rlen = 0;
         fgets(buffer, BUFFER_LENGTH, stdin);
         send(clientfd, buffer, strlen(buffer), 0);
         bzero(buffer, BUFFER_LENGTH);
-        while(true)
-        {
-            int read_bytes = recv(clientfd, buffer+rlen, BUFFER_LENGTH-rlen, 0);
-            if(
-                read_bytes == 0 || 
-                (read_bytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
-            )
-            {
-                break;
-            }
-            rlen += read_bytes;
-        }
+        recv(clientfd, buffer, BUFFER_LENGTH, 0);
+        // while(true)
+        // {
+        //     int read_bytes = recv(clientfd, buffer+rlen, BUFFER_LENGTH-rlen, 0);
+        //     if(
+        //         read_bytes == 0 || 
+        //         (read_bytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK))
+        //     )
+        //     {
+        //         break;
+        //     }
+        //     rlen += read_bytes;
+        // }
         printf("recv from server: %s\r\n", buffer);
     }
     close(clientfd);

@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include <vector>
+#include <string>
 
 #define TABLE_NAME_LEN 128
 #define USER_INFO_ID 512
@@ -30,11 +31,24 @@ public:
     UserInfo();
     ~UserInfo();
     // 增删查改
-    int insert(GaussConnector *dbConnector, UserInfoLine* info);
+    int insert(const char *cmd, char *errmsgBuffer=nullptr);
 
-    int remove(GaussConnector *dbConnector, UserInfoLine* info);
+    /**
+     * @brief 查询操作 
+     * @param info 要查询的信息 
+     * @param errmsgBuffer 如果查询失败的话会有错误信息保存在此数组中 
+     * @return std::vector<UserInfoLine> 返回找到的信息
+     */
+    std::vector<std::vector<std::string>> search(const char* condition, char* errmsgBuffer = nullptr);
 
-    std::vector<UserInfoLine> search();
+    /**
+     * @brief 更新操作
+     * @param cmd 修改操作 
+     * @param errmsgBuffer 错误信息存储
+     * @return int 成功返回0,失败返回-1
+     */
+    int modify(const char *cmd, char *errmsgBuffer = nullptr);
+
 private:
     char tableName[TABLE_NAME_LEN];
 };

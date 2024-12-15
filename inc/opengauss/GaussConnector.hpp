@@ -6,6 +6,8 @@
 
 #include <string>
 
+extern const char* connCmd; 
+
 class GaussConnector
 {
 public:
@@ -40,6 +42,10 @@ public:
     int remove(const char *cmd, char *errmsgBuffer=nullptr);
 
     int searchForOne(const char* cmd, char *errmsgBuffer=nullptr);
+
+    PGconn *getDBConnector();
+
+    PGresult *getDBRes();
 
 private:
     const char *conninfo;

@@ -2,10 +2,12 @@
 #include "Socket.hpp"
 #include "EventLoop.hpp"
 #include "log/util.hpp"
+#include "opengauss/tables/UserInfo.hpp"
 #include "pools/ThreadPool.hpp"
 #include "opengauss/GaussConnector.hpp"
 #include "opengauss/libpq-fe.h"
 
+#include <iostream>
 #include <string.h>
 #include <sys/socket.h>
 #include <stdio.h>
@@ -13,6 +15,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <vector>
+
+#define BUFFER_LENGTH 1024
+#define QUERY_BUFFER_SIZE 2048
 
 void trim(char* str) {
     int start = 0;
@@ -85,9 +91,6 @@ void acceptCallback(Connection* conn, Epoll *epoll, GaussConnector *dbConnector)
         return;
     }
 
-    // debug:
-    printf("new client %d \r\n", client_conn->getFd());
-
     client_conn->setNonBlocking();
     client_conn->setEvent(EPOLLET | EPOLLIN);
     epoll->updateConnection(client_conn, ACTION_UPDATE);
@@ -134,38 +137,158 @@ void recvCallback(Connection *conn, Epoll *epoll)
 
 void sendCallback(Connection *conn, Epoll *epoll, GaussConnector *dbConnector)
 {
-    // debug:
-    char buffer[1024];
+    conn->wBufferClear();
+    char buffer[BUFFER_LENGTH];
     trim(conn->getrBuffer());
+
+    // 获取客户端输入的所有信息:
     strcpy(buffer, conn->getrBuffer());
-    if(strcmp(buffer, "LogIn"))
+    if(strstr(buffer, "LogIn"))
     {
+        // 请求一:用户请求登录
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
         // 登录操作:
         const char delims[] = " ?";
         strtok(buffer, delims);
-        char *username = strtok(NULL, delims);
-        char *password = strtok(NULL, delims);
-        printf("username = %s,pwd=%s\r\n", username, password);
 
-        // todo: 查找操作:
-        char query[2048];
-        char errmsgBuffer[1024];
-        sprintf(query, "select * from user_info where username = '%s' and password = '%s';", username, password);
-        //debug:
-        printf("query = %s\r\n", query);
-        int res = dbConnector->searchForOne(query, errmsgBuffer);
+        // 获取用户名字和用户密码
+        char *userId = strtok(NULL, delims);
+        char *password = strtok(NULL, delims);
+
+        char queryCmd[QUERY_BUFFER_SIZE];
+        sprintf(queryCmd, "userid = '%s'", userId);
+        auto searchRes = userinfo.search(queryCmd, errmsgBuffer);
+
+        if(searchRes.size() == 0)
+        {
+            // err1.找不到该用户
+            sprintf(conn->getwBuffer(), "%s", "NoUid");
+            conn->setWLen(strlen("NoUid"));
+            send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
+            epoll->updateConnection(conn, ACTION_DELETE);
+            return;
+        } else {
+            // 查看密码是否正确:
+            sprintf(queryCmd, "userid = '%s' and password = '%s'", userId, password);
+            auto searchRes = userinfo.search(queryCmd, errmsgBuffer);
+            if(!searchRes.empty())
+            {
+                // 设置用户为登录状态:
+                sprintf(queryCmd, "update user_info set online = 1 where userid = '%s'", userId);
+                userinfo.modify(queryCmd, errmsgBuffer);
+                sprintf(conn->getwBuffer(), "%s %s", "Pass", searchRes[0][2].c_str());
+                conn->setWLen(strlen(conn->getwBuffer()));
+            } else {
+                sprintf(conn->getwBuffer(), "%s", "WrongPwd");
+                conn->setWLen(strlen("WrongPwd"));
+                send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
+                epoll->updateConnection(conn, ACTION_DELETE);
+                return;
+            }
+        }
+    }
+    else if(strstr(buffer, "ChangePwd"))
+    {
+        // 修改密码:
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
+        const char delims[] = " ?";
+        strtok(buffer, delims);
+
+        // 获取uid,旧密码和新密码
+        char *userId = strtok(NULL, delims);
+        char *oldpwd = strtok(NULL, delims);
+        char *newpwd = strtok(NULL, delims);
+
+        char queryCmd[QUERY_BUFFER_SIZE];
+        sprintf(queryCmd, "userid = '%s'", userId);
+        auto searchRes = userinfo.search(queryCmd, errmsgBuffer);
+
+        if(searchRes.size() == 0)
+        {
+            // 说明没有这个账号:
+            sprintf(conn->getwBuffer(), "%s", "NoUid");
+            conn->setWLen(strlen("NoUid"));
+            send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
+            epoll->updateConnection(conn, ACTION_DELETE);
+            return;
+        } else {
+            if(!strcmp(searchRes[0][1].c_str(), oldpwd))
+            {
+                // 修改密码:
+                sprintf(queryCmd, "update user_info set password = '%s' where userid = '%s'", newpwd, userId); 
+                userinfo.modify(queryCmd, errmsgBuffer);
+                sprintf(conn->getwBuffer(), "%s", "Pass");
+                conn->setWLen(strlen(conn->getwBuffer()));
+                // 修改密码不需要长连接
+                send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
+                epoll->updateConnection(conn, ACTION_DELETE);
+                return;
+            } else {
+                // 原密码错误:
+                sprintf(conn->getwBuffer(), "%s", "WrongPwd");
+                conn->setWLen(strlen("WrongPwd"));
+                send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
+                epoll->updateConnection(conn, ACTION_DELETE);
+                return;
+            }
+        }
+    }
+    else if(strstr(buffer, "SignUp"))
+    {
+        // 注册
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
+        const char delims[] = " ?";
+        strtok(buffer, delims);
+
+        // 获取用户id,密码和用户名
+        char *userId = strtok(NULL, delims);
+        char *password = strtok(NULL, delims);
+        char *username = strtok(NULL, delims);
+
+        char queryCmd[QUERY_BUFFER_SIZE];
+        // 先查询账号是否存在:
+        sprintf(queryCmd, "userid = '%s'", userId);
+        auto searchRes = userinfo.search(queryCmd, errmsgBuffer);
+        if(searchRes.size() != 0)
+        {
+            // 说明已经有该账号了:
+            sprintf(conn->getwBuffer(), "%s", "UidExist");
+            conn->setWLen(strlen("UidExist"));
+            send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
+            epoll->updateConnection(conn, ACTION_DELETE);
+            return;
+        }
+        // 如果账号不存在,注册一个:
+        sprintf(queryCmd, "insert into user_info values('%s', '%s', '%s', 0, '')", userId, password, username);
+        int res = userinfo.insert(queryCmd, errmsgBuffer);
         if(res == 0)
         {
-            strcpy(conn->getwBuffer(), "Pass");
+            // 注册成功:
+            sprintf(conn->getwBuffer(), "%s", "Pass");
             conn->setWLen(strlen("Pass"));
         } else {
-            strcpy(conn->getwBuffer(), errmsgBuffer);
-            conn->setWLen(strlen(errmsgBuffer));
+            // for debug:
+            sprintf(conn->getwBuffer(), "%s", "Failed to signup!!!");
+            conn->setWLen(strlen(conn->getwBuffer()));
         }
+        // 注册不需要长连接
+        send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
+        epoll->updateConnection(conn, ACTION_DELETE);
+        return;
     }
 
     send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
 
-    // close:
-    epoll->updateConnection(conn, ACTION_DELETE);
+    // todo:需要保持长连接
+    conn->setEvent(EPOLLIN | EPOLLET);
+    epoll->updateConnection(conn, ACTION_UPDATE);
 }

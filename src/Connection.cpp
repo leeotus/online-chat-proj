@@ -19,8 +19,6 @@ Connection::Connection(const char *ip, const int port)
 
 Connection::~Connection()
 {
-    //debug:
-    printf("~Connection()\r\n");
     if(inetAddr!=nullptr)
     {
         delete inetAddr;
@@ -87,11 +85,13 @@ void Connection::exeSendCallback()
 void Connection::wBufferClear()
 {
     memset(wbuffer, 0, SEND_BUFFER_LENGTH);
+    setWLen(0);
 }
 
 void Connection::rBufferClear()
 {
     memset(rbuffer, 0, RECV_BUFFER_LENGTH);
+    setRLen(0);
 }
 
 char* Connection::getwBuffer()
