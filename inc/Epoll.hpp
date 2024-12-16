@@ -47,6 +47,13 @@ public:
     void setRecvCallback(Connection* conn, std::function<void(Connection*, Epoll*)> f);
 
     void setSendCallback(Connection* conn, std::function<void(Connection*, Epoll*)> f);
+
+    /**
+     * @brief 发送消息给除了_fd文件描述符以外的其他客户端
+     * @param _fd 不用发送信息给的客户端 
+     * @param msg 要发送的消息
+     */
+    void sendMsg2AllExcept(int _fd, const char *msg);
     
 private:
     int epfd;

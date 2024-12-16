@@ -2,6 +2,8 @@
 #include "log/util.hpp"
 #include "Connection.hpp"
 
+#include <cstring>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
 
@@ -63,4 +65,17 @@ void Epoll::setRecvCallback(Connection* conn, std::function<void(Connection*, Ep
 void Epoll::setSendCallback(Connection* conn, std::function<void(Connection*, Epoll*)> f)
 {
     conn->setSendCallback(std::bind(f, std::forward<Connection*>(conn), std::forward<Epoll*>(this)));
+}
+
+void Epoll::sendMsg2AllExcept(int _fd, const char *msg)
+{
+    for(auto &conn : connMap)
+    {
+        int fd = conn.first;
+        // bug: fd=5是什么?
+        if(fd != _fd && fd != 5)
+        {
+            send(fd, msg, strlen(msg), 0);
+        }
+    }
 }

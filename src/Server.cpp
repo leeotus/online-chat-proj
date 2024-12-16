@@ -285,6 +285,43 @@ void sendCallback(Connection *conn, Epoll *epoll, GaussConnector *dbConnector)
         epoll->updateConnection(conn, ACTION_DELETE);
         return;
     }
+    else if(strstr(buffer, "LogOut"))
+    {
+        // 退出操作:
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
+        const char delims[] = " ?";
+        strtok(buffer, delims);
+
+        // 获取用户id
+        char *userId = strtok(NULL, delims);
+        char queryCmd[QUERY_BUFFER_SIZE];
+        sprintf(queryCmd, "update user_info set online = 0 where userid = '%s'", userId);
+        // 修改登录信息:
+        userinfo.modify(queryCmd, errmsgBuffer);
+
+        // 从epoll红黑树删除:
+        epoll->updateConnection(conn, ACTION_DELETE);
+        return;
+    }
+    else if(strstr(buffer, "Send"))
+    {
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
+        const char delims[] = " ?";
+        strtok(buffer, delims);
+
+        // 获取用户发上来的消息,之后需要发送给其他用户
+        char *message = strtok(NULL, delims);
+        epoll->sendMsg2AllExcept(conn->getFd(), message);
+        conn->setEvent(EPOLLIN | EPOLLET);
+        epoll->updateConnection(conn, ACTION_UPDATE);
+        return;
+    }
 
     send(conn->getFd(), conn->getwBuffer(), conn->getCurWlen(), 0);
 
