@@ -74,7 +74,7 @@ int UserInfo::modify(const char *cmd, char *errmsgBuffer)
     return 0;
 }
 
-std::vector<std::vector<std::string>> UserInfo::search(const char* condition, char *errmsgBuffer)
+std::vector<std::vector<std::string>> UserInfo::search(const char* condition, char *errmsgBuffer, const char *tableName)
 {
     int nFields;
     PGconn *conn;
@@ -95,9 +95,9 @@ std::vector<std::vector<std::string>> UserInfo::search(const char* condition, ch
     // 查询语句
     if(strlen(condition) != 0)
     {
-        sprintf(query, "select * from user_info where %s", condition);
+        sprintf(query, "select * from %s where %s", tableName, condition);
     } else {
-        sprintf(query, "select * from user_info");
+        sprintf(query, "select * from %s", tableName);
     }
     // 设定事务名称
     sprintf(transactionName, "Search%zu", char_hash(query) % 1000000);

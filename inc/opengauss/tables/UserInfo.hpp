@@ -39,7 +39,7 @@ public:
      * @param errmsgBuffer 如果查询失败的话会有错误信息保存在此数组中 
      * @return std::vector<UserInfoLine> 返回找到的信息
      */
-    std::vector<std::vector<std::string>> search(const char* condition, char* errmsgBuffer = nullptr);
+    std::vector<std::vector<std::string>> search(const char* condition, char* errmsgBuffer = nullptr, const char *tableName = "user_info");
 
     /**
      * @brief 更新操作

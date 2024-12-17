@@ -10,7 +10,7 @@ Socket::Socket()
     fd = socket(PF_INET, SOCK_STREAM, 0);
     errif(fd == -1, "socket create failed!");
 
-    InetAddress *_inetAddr = new InetAddress("127.0.0.1", 8080);
+    InetAddress *_inetAddr = new InetAddress("10.0.12.2", 8080);
     inetAddr = _inetAddr;
     this->bind();
 }

@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
     char buffer[BUFFER_LENGTH];
     int bufferLen = 0;
-    const char *ip = "127.0.0.1";
+    const char *ip = "10.0.12.2";
     const int port = 8080;
     int epfd;
     struct epoll_event events[MAX_EPOLL_CONNECTION];

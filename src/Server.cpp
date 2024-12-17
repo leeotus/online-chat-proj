@@ -54,7 +54,7 @@ Server::Server(EventLoop *_loop) : dbConnector(new GaussConnector)
 {
     errif(loop != nullptr, "EventLoop * is nullptr!");
     loop = _loop;
-    servSock = new Socket("127.0.0.1", 8080);
+    servSock = new Socket("10.0.12.2", 8080);
     servSock->listen(MAX_LISTEN_NUM);
     servSock->setEvent(EPOLLIN|EPOLLET);
     servSock->setNonBlocking();
@@ -312,12 +312,106 @@ void sendCallback(Connection *conn, Epoll *epoll, GaussConnector *dbConnector)
         char errmsgBuffer[BUFFER_LENGTH];
         memset(errmsgBuffer, 0, BUFFER_LENGTH);
 
+        // const char delims[] = " ?";
+        // strtok(buffer, delims);
+
+        // 获取用户发上来的消息,之后需要发送给其他用户
+        // char *message = strtok(NULL, delims);
+        // epoll->sendMsg2AllExcept(conn->getFd(), message);
+        epoll->sendMsg2AllExcept(conn->getFd(), buffer);
+        conn->setEvent(EPOLLIN | EPOLLET);
+        epoll->updateConnection(conn, ACTION_UPDATE);
+        return;
+    }
+    else if(strstr(buffer, "FollowingOnline"))
+    {
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
         const char delims[] = " ?";
         strtok(buffer, delims);
 
-        // 获取用户发上来的消息,之后需要发送给其他用户
-        char *message = strtok(NULL, delims);
-        epoll->sendMsg2AllExcept(conn->getFd(), message);
+        // 获取用户id
+        char *userId = strtok(NULL, delims);
+
+        char queryCmd[QUERY_BUFFER_SIZE];
+        sprintf(queryCmd, "uid = '%s'", userId);
+        auto searchRes = userinfo.search(queryCmd, errmsgBuffer, "following");
+
+        strcpy(conn->getwBuffer(), "FollowingOnline ");
+        if(!searchRes.empty())
+        {
+            for(auto &relation : searchRes)
+            {
+                char followId[BUFFER_LENGTH];
+                char followName[BUFFER_LENGTH];
+                strcpy(followId, relation[1].c_str());
+                // 查询关注的用户其昵称和是否在线
+                sprintf(queryCmd, "userid = '%s'", followId);
+
+                auto userRes = userinfo.search(queryCmd, errmsgBuffer);
+                if(userRes.empty())
+                {
+                    continue;
+                }
+                if(strstr(userRes[0][3].c_str(), "1"))
+                {
+                    // 说明关注的用户在线:
+                    sprintf(followName, "#%s ", userRes[0][2].c_str());
+                    strcat(conn->getwBuffer(), followId);
+                    strcat(conn->getwBuffer(), followName);
+                }
+            }
+        } else {
+            strcat(conn->getwBuffer(), "Empty");
+        }
+        strcat(conn->getwBuffer(), "%");
+        conn->setWLen(strlen(conn->getwBuffer()));
+    }
+    else if(strstr(buffer, "Follow"))
+    {
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
+        const char delims[] = " ?";
+        strtok(buffer, delims);
+
+        // 获取用户的id和要关注的id:
+        char *userId = strtok(NULL, delims);
+        char *want2followId = strtok(NULL, delims);
+
+        char queryCmd[QUERY_BUFFER_SIZE];
+        sprintf(queryCmd, "insert into following values('%s', '%s')", userId, want2followId);
+        int res = userinfo.insert(queryCmd, errmsgBuffer);
+        if(res != 0)
+        {
+            sprintf(conn->getwBuffer(), "%s", "NoUid %");
+            conn->setWLen(strlen(conn->getwBuffer()));
+        } else {
+            // 不用发送
+            conn->setEvent(EPOLLIN | EPOLLET);
+            epoll->updateConnection(conn, ACTION_UPDATE);
+            return;
+        }
+    } 
+    else if(strstr(buffer, "Unfollow"))
+    {
+        UserInfo userinfo;
+        char errmsgBuffer[BUFFER_LENGTH];
+        memset(errmsgBuffer, 0, BUFFER_LENGTH);
+
+        const char delims[] = " ?";
+        strtok(buffer, delims);
+
+        // 获取用户id和要取消关注的id
+        char *userId = strtok(NULL, delims);
+        char *delId = strtok(NULL, delims);
+
+        char queryCmd[QUERY_BUFFER_SIZE];
+        sprintf(queryCmd, "delete from following where uid = '%s' and following_id = '%s'", userId, delId);
+        userinfo.modify(queryCmd, errmsgBuffer);
         conn->setEvent(EPOLLIN | EPOLLET);
         epoll->updateConnection(conn, ACTION_UPDATE);
         return;

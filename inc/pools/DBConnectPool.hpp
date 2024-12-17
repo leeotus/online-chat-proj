@@ -11,7 +11,7 @@
 #include <functional>
 
 class DBConnectPool{
-    const char *conninfo = "dbname=postgres port=5432 host='159.75.88.12' application_name=online-chat connect_timeout=10 sslmode=allow user='superuser' password='OGSql@123'";
+    const char *conninfo = "dbname=postgres port=5432 host='172.17.0.1' application_name=online-chat connect_timeout=10 sslmode=allow user='superuser' password='OGSql@123'";
 public:
     explicit DBConnectPool(int _connNum);
     ~DBConnectPool();
